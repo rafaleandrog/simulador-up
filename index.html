@@ -23,6 +23,7 @@
     --up-sand:      #f5f3f0;
     --up-sand-dk:   #e8e3dc;
     --up-warm:      #f8f7f5;
+    --up-logo-bg:   #d3d3d3;
     --up-gray-100:  #f4f4f4;
     --up-gray-200:  #e5e5e5;
     --up-gray-300:  #d4d4d4;
@@ -52,7 +53,7 @@
 
   /* ===== TOPBAR / HEADER ===== */
   .site-header {
-    background: var(--up-dark);
+    background: var(--up-logo-bg);
     padding: 0 32px;
     display: flex;
     align-items: center;
@@ -72,24 +73,11 @@
     height: auto;
     display: block;
   }
-  .logo-text {
-    font-size: 13px;
-    color: var(--up-gray-400);
-    letter-spacing: 0.5px;
-    line-height: 1.3;
-  }
-  .logo-text strong {
-    display: block;
-    font-size: 15px;
-    color: #fff;
-    font-weight: 600;
-    letter-spacing: 0;
-  }
   .header-badge {
     font-size: 11px;
-    color: var(--up-gray-400);
-    background: var(--up-dark-2);
-    border: 1px solid rgba(255,255,255,.1);
+    color: var(--up-dark);
+    background: rgba(255,255,255,.45);
+    border: 1px solid rgba(55,72,84,.22);
     border-radius: 20px;
     padding: 5px 14px;
     letter-spacing: 0.3px;
@@ -542,7 +530,7 @@
 
   /* ===== FOOTER ===== */
   .site-footer {
-    background: var(--up-dark);
+    background: var(--up-logo-bg);
     padding: 24px 32px;
     display: flex;
     align-items: center;
@@ -551,7 +539,7 @@
   }
   .footer-brand {
     font-size: 12px;
-    color: var(--up-gray-400);
+    color: var(--up-dark);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -565,7 +553,7 @@
   }
   .footer-links a {
     font-size: 12px;
-    color: var(--up-gray-400);
+    color: var(--up-dark);
     text-decoration: none;
     transition: color .15s;
   }
@@ -592,10 +580,6 @@
 <header class="site-header">
   <div class="logo-area">
     <img class="logo-image" src="assets/up-logo.svg" alt="Logotipo UP">
-    <div class="logo-text">
-      <strong>Urbanizadora Paranoazinho</strong>
-      Simulador de Financiamento
-    </div>
   </div>
   <div class="header-badge">Simulação de lotes</div>
 </header>

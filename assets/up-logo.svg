@@ -1,15 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 370 180" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="268" height="142" viewBox="0 0 268 142" role="img" aria-labelledby="title desc">
   <title id="title">Logotipo UP</title>
-  <desc id="desc">Símbolo com traços cinza, turquesa e laranja seguido das letras UP.</desc>
-  <g fill="none" stroke-linecap="round" stroke-width="16">
-    <path d="M34 106c16 8 23 23 23 41" stroke="#08A6AE"/>
-    <path d="M76 66c16 8 23 23 23 41" stroke="#56626A"/>
-    <path d="M118 96c-16 8-23 23-23 41" stroke="#F58A2B"/>
-    <path d="M55 37c16 8 39 8 55 0" stroke="#56626A"/>
-    <path d="M115 58c-16 8-23 23-23 41" stroke="#F58A2B"/>
+  <desc id="desc">Logotipo da UP com fundo cinza e assinatura urbanizadora paranoazinho.</desc>
+  <rect width="268" height="142" fill="#d3d3d3"/>
+
+  <g fill="none" stroke-linecap="round" stroke-width="8">
+    <path d="M28 74c8 4 11 11 11 19" stroke="#08A6AE"/>
+    <path d="M47 55c8 4 11 11 11 19" stroke="#56626A"/>
+    <path d="M66 69c-8 4-11 11-11 19" stroke="#F58A2B"/>
+    <path d="M36 42c8 4 19 4 27 0" stroke="#56626A"/>
+    <path d="M65 50c-8 4-11 11-11 19" stroke="#F58A2B"/>
   </g>
+
   <g fill="#4B5660">
-    <path d="M150 34h10c17 0 31 14 31 31v79c0 17-14 31-31 31h-10z"/>
-    <path d="M258 34h62c30 0 50 19 50 50 0 31-20 50-50 50h-30v40c0 4-3 7-7 7h-25c-4 0-7-3-7-7V41c0-4 3-7 7-7zm32 33v35h27c12 0 19-7 19-18s-7-17-19-17z"/>
+    <path d="M88 32h6c12 0 21 9 21 21v52c0 12-9 21-21 21h-6z"/>
+    <path d="M134 32h42c20 0 33 12 33 33 0 20-13 33-33 33h-20v26c0 3-2 5-5 5h-17c-3 0-5-2-5-5V37c0-3 2-5 5-5zm22 22v24h18c8 0 13-5 13-12s-5-12-13-12z"/>
   </g>
+
+  <text x="26" y="116" font-family="Instrument Sans, Arial, sans-serif" font-size="11" fill="#4B5660" letter-spacing="0">urbanizadora</text>
+  <text x="170" y="116" font-family="Instrument Sans, Arial, sans-serif" font-size="11" fill="#4B5660" letter-spacing="0">paranoazinho</text>
 </svg>
