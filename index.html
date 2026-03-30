@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Financiamento - UP Urbanizadora Paranoazinho</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    /* ===== PALETA UP ===== */
+    --up-dark:      #374854;   /* cinza escuro principal */
+    --up-dark-2:    #2d3d48;   /* mais escuro (hover/header deep) */
+    --up-teal:      #3DBDB5;   /* verde-azulado UP */
+    --up-teal-lt:   #5acec7;   /* teal claro */
+    --up-teal-bg:   #edfafa;   /* fundo teal suave */
+    --up-teal-bd:   #a8dedd;   /* borda teal */
+    --up-orange:    #F26522;   /* laranja UP */
+    --up-orange-bg: #fff5f0;   /* fundo laranja suave */
+    --up-orange-bd: #fdc9a8;   /* borda laranja */
+    --up-gray-text: #546270;   /* cinza de texto UP */
+    --up-sand:      #f5f3f0;
+    --up-sand-dk:   #e8e3dc;
+    --up-warm:      #f8f7f5;
+    --up-gray-100:  #f4f4f4;
+    --up-gray-200:  #e5e5e5;
+    --up-gray-300:  #d4d4d4;
+    --up-gray-400:  #a3a3a3;
+    --up-gray-500:  #737373;
+    --up-gray-600:  #525252;
+    --up-gray-700:  #404040;
+    --up-gray-900:  #171717;
+    --up-amber-bg:  #fef9ee;
+    --up-amber-bd:  #f5dfa6;
+    --up-red:       #b91c1c;
+    --up-red-bg:    #fef2f2;
+    --radius:       8px;
+    --radius-lg:    14px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+    background: var(--up-warm);
+    margin: 0;
+    padding: 0;
+    color: var(--up-gray-900);
+    min-height: 100vh;
+  }
+
+  /* ===== TOPBAR / HEADER ===== */
+  .site-header {
+    background: var(--up-dark);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: var(--up-orange);
+    border-radius: 8px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+  .logo-text {
+    font-size: 13px;
+    color: var(--up-gray-400);
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+  }
+  .logo-text strong {
+    display: block;
+    font-size: 15px;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .header-badge {
+    font-size: 11px;
+    color: var(--up-gray-400);
+    background: var(--up-dark-2);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px;
+    padding: 5px 14px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ===== HERO SECTION ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--up-dark-2) 0%, var(--up-dark) 100%);
+    padding: 52px 32px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+    position: relative;
+  }
+  .hero p {
+    font-size: 15px;
+    color: rgba(255,255,255,.6);
+    margin: 0;
+    position: relative;
+  }
+  .hero-line {
+    width: 48px;
+    height: 3px;
+    background: var(--up-orange);
+    border-radius: 2px;
+    margin: 16px auto 0;
+    position: relative;
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  .main-content {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--up-gray-200);
+    padding: 28px 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.02);
+    transition: box-shadow .2s;
+  }
+  .card:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.04);
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--up-teal);
+    margin: 0 0 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--up-teal-bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--up-orange);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ===== FIELDS ===== */
+  .field-row {
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .field-row.two-col {
+    grid-template-columns: 200px 1fr;
+  }
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--up-gray-700);
+  }
+
+  input[type=text] {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--up-gray-200);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--up-gray-900);
+    width: 100%;
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+  }
+  input[type=text]:focus {
+    border-color: var(--up-teal);
+    box-shadow: 0 0 0 3px rgba(61,189,181,.12);
+  }
+  input[type=text]:read-only {
+    background: var(--up-gray-100);
+    color: var(--up-gray-500);
+    cursor: not-allowed;
+    border-color: var(--up-gray-200);
+  }
+  input[type=text]::placeholder {
+    color: var(--up-gray-400);
+    font-family: 'Instrument Sans', sans-serif;
+  }
+
+  .field-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--up-gray-400);
+    white-space: nowrap;
+  }
+
+  /* Valor destaque */
+  .value-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--up-gray-900);
+    background: var(--up-sand);
+    border: 1.5px solid var(--up-sand-dk);
+    border-radius: var(--radius);
+    padding: 9px 16px;
+  }
+  .value-display.green {
+    background: var(--up-teal-bg);
+    border-color: var(--up-teal-bd);
+    color: var(--up-teal);
+  }
+
+  /* Checkbox JIC */
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    background: var(--up-gray-100);
+    border: 1.5px solid var(--up-gray-200);
+    border-radius: var(--radius);
+  }
+  .checkbox-row input[type=checkbox] {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--up-teal);
+    cursor: pointer;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .checkbox-row input[type=checkbox]:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+  }
+  .checkbox-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--up-gray-700);
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .checkbox-label small {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--up-gray-500);
+    margin-top: 3px;
+    line-height: 1.5;
+  }
+
+  /* Lote grande info */
+  #loteGrandeInfo {
+    display: none;
+    font-size: 12px;
+    color: var(--up-teal);
+    background: var(--up-teal-bg);
+    border: 1px solid var(--up-teal-bd);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-top: -6px;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  /* Desconto info */
+  #descontoInfo {
+    display: none;
+    font-size: 13px;
+    color: var(--up-teal);
+    background: var(--up-teal-bg);
+    border: 1px solid var(--up-teal-bd);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary {
+    background: var(--up-orange);
+    color: #fff;
+    width: 100%;
+    justify-content: center;
+    padding: 13px;
+    font-size: 15px;
+    border-radius: 10px;
+    letter-spacing: 0.2px;
+  }
+  .btn-primary:hover { background: #d95a1e; }
+  .btn-secondary {
+    background: var(--up-gray-100);
+    color: var(--up-gray-700);
+    border: 1.5px solid var(--up-gray-200);
+  }
+  .btn-secondary:hover { background: var(--up-gray-200); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  /* ===== TABLE ===== */
+  #fluxoParcelas { max-width: 720px; margin: 0 auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  th {
+    background: var(--up-dark);
+    color: #fff;
+    padding: 11px 14px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .4px;
+  }
+  td {
+    padding: 9px 14px;
+    text-align: right;
+    border-bottom: 1px solid var(--up-gray-100);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { text-align: center; font-family: 'Instrument Sans', sans-serif; }
+  tr:nth-child(even) td { background: var(--up-gray-100); }
+  .carencia-row td { background: var(--up-amber-bg) !important; font-style: italic; color: #92400e; }
+  .total-row td { background: var(--up-teal-bg) !important; font-weight: 700; color: var(--up-teal); border-top: 2px solid var(--up-teal-bd); }
+
+  /* Disclaimer */
+  .disclaimer {
+    display: none;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--up-gray-500);
+    background: var(--up-gray-100);
+    border: 1px dashed var(--up-gray-300);
+    padding: 16px 18px;
+    border-radius: var(--radius);
+    white-space: pre-line;
+    max-width: 720px;
+    margin: 16px auto 0;
+  }
+
+  /* Loading/Error */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--up-gray-500);
+    font-size: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--up-gray-200);
+    border-top-color: var(--up-teal);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-box {
+    display: none;
+    color: var(--up-red);
+    padding: 16px 20px;
+    background: var(--up-red-bg);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    max-width: 720px;
+    margin: 0 auto;
+    font-size: 14px;
+  }
+
+  /* Botão Gerar Relatório */
+  #btnRelatorio {
+    display: none;
+    margin: 0 auto 20px;
+    max-width: 720px;
+    width: 100%;
+  }
+  .btn-report {
+    width: 100%;
+    padding: 14px;
+    background: var(--up-dark);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Instrument Sans', sans-serif;
+    transition: background .15s, transform .08s;
+    letter-spacing: 0.2px;
+  }
+  .btn-report:hover { background: var(--up-dark-2); }
+  .btn-report:active { transform: scale(.98); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 420px;
+    margin: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    animation: modalIn .2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(.95) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--up-gray-900);
+    margin: 0 0 6px;
+  }
+  .modal p {
+    font-size: 13px;
+    color: var(--up-gray-500);
+    margin: 0 0 22px;
+  }
+  .modal-field {
+    margin-bottom: 14px;
+  }
+  .modal-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--up-gray-700);
+    margin-bottom: 6px;
+  }
+  .modal-field input {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1.5px solid var(--up-gray-200);
+    border-radius: 9px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 14px;
+    color: var(--up-gray-900);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .modal-field input:focus {
+    border-color: var(--up-teal);
+    box-shadow: 0 0 0 3px rgba(61,189,181,.12);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .modal-actions .btn { flex: 1; justify-content: center; }
+  .btn-cancel {
+    background: var(--up-gray-100);
+    color: var(--up-gray-700);
+    border: 1.5px solid var(--up-gray-200);
+  }
+  .btn-cancel:hover { background: var(--up-gray-200); }
+  .btn-confirm {
+    background: var(--up-orange);
+    color: #fff;
+  }
+  .btn-confirm:hover { background: #d95a1e; }
+
+  /* ===== FOOTER ===== */
+  .site-footer {
+    background: var(--up-dark);
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .footer-brand {
+    font-size: 12px;
+    color: var(--up-gray-400);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .footer-brand .logo-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  .footer-links {
+    display: flex;
+    gap: 20px;
+  }
+  .footer-links a {
+    font-size: 12px;
+    color: var(--up-gray-400);
+    text-decoration: none;
+    transition: color .15s;
+  }
+  .footer-links a:hover { color: var(--up-teal-lt); }
+
+  @media (max-width: 600px) {
+    .field-row { grid-template-columns: 1fr; }
+    .field-row label { margin-bottom: -4px; }
+    .field-hint { font-size: 11px; }
+    .card { padding: 20px 18px; }
+    .site-header { padding: 0 16px; height: 56px; }
+    .hero { padding: 36px 20px 32px; }
+    .hero h1 { font-size: 22px; }
+    .main-content { padding: 20px 14px 48px; }
+    .site-footer { flex-direction: column; text-align: center; padding: 20px 16px; }
+    .footer-links { gap: 14px; }
+    .header-badge { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="logo-area">
+    <div class="logo-mark">UP</div>
+    <div class="logo-text">
+      <strong>Urbanizadora Paranoazinho</strong>
+      Simulador de Financiamento
+    </div>
+  </div>
+  <div class="header-badge">Simulação de lotes</div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Simulador de Financiamento</h1>
+  <p>Calcule as condições de parcelamento para seu lote</p>
+  <div class="hero-line"></div>
+</section>
+
+<div id="loadingEl" class="loading" style="display:none;">
+  <div class="spinner"></div>
+  Carregando simulação...
+</div>
+<div id="errorEl" class="error-box"></div>
+
+<div class="main-content">
+<div id="content">
+
+  <!-- CARD 1: Valor do Lote -->
+  <div class="card">
+    <div class="card-title">Valor do Lote</div>
+
+    <div class="field-row">
+      <label for="area">Área (m²)</label>
+      <input type="text" id="area">
+    </div>
+
+    <div id="loteGrandeInfo">
+      ⬆ Lote acima de 600 m² — área excedente com 30% de desconto por metro quadrado
+    </div>
+
+    <div class="field-row">
+      <label for="preco">Preço (R$/m²)</label>
+      <input type="text" id="preco">
+    </div>
+
+    <div class="field-row two-col" style="margin-top:4px">
+      <label>Valor do lote</label>
+      <div id="valorLote" class="value-display">R$ 0,00</div>
+    </div>
+  </div>
+
+  <!-- CARD 2: Simulador -->
+  <div class="card">
+    <div class="card-title">Condições de Financiamento</div>
+
+    <div class="field-row">
+      <label for="prazo">Prazo (meses)</label>
+      <input type="text" id="prazo">
+    </div>
+
+    <div class="field-row">
+      <label for="carencia">Carência (meses)</label>
+      <input type="text" id="carencia">
+    </div>
+
+    <!-- JIC checkbox -->
+    <div class="checkbox-row" id="jicRow">
+      <input type="checkbox" id="jic">
+      <label class="checkbox-label" for="jic">
+        Carência total (capitalização de juros)
+        <small>Marcado: sem pagamento no período — juros se incorporam ao saldo.<br>Desmarcado: apenas os juros são pagos durante a carência.</small>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label for="sinal">Sinal (R$)</label>
+      <input type="text" id="sinal">
+      <span id="percentualSinal" class="field-hint">(0,00%)</span>
+    </div>
+
+    <div class="field-row">
+      <label for="desconto">Desconto sobre saldo (%)</label>
+      <input type="text" id="desconto">
+    </div>
+
+    <div id="descontoInfo"></div>
+
+    <div class="field-row two-col" style="margin-top:4px;margin-bottom:18px">
+      <label>Saldo devedor financiado</label>
+      <div id="novoSaldo" class="value-display">R$ 0,00</div>
+    </div>
+
+    <button class="btn btn-primary" id="calcular">Calcular financiamento</button>
+  </div>
+
+  <!-- Fluxo de pagamentos -->
+  <div id="fluxoParcelas" style="display:none;" class="card">
+    <div class="card-title">Fluxo de Pagamento</div>
+    <div class="btn-row" style="margin-bottom:16px">
+      <button class="btn btn-secondary" id="btnFluxoCompleto">Fluxo completo</button>
+      <button class="btn btn-secondary" id="btnFluxoResumido">Fluxo resumido</button>
+    </div>
+    <div id="tabelaFluxo"></div>
+  </div>
+
+  <div id="disclaimer" class="disclaimer">
+OBSERVAÇÕES IMPORTANTES:
+- Os valores apresentados acima não representam garantias ou propostas por parte da UP, não sendo oponíveis, em nenhuma hipótese
+- Os pagamentos devidos à UP serão determinados na forma regulada em seu contrato e/ou escritura, ainda que haja divergências em relação ao cálculo simulado nesta página
+- Os financiamentos pelo(a) UP não incorporam ITBI e custos cartoriais, que devem estar quitadas pelo morador no ato da escritura
+- Imóvel será alienado fiduciariamente em favor do credor até a quitação, como garantia
+- Não deixe de considerar a opção de pagamento à vista, em que você não precisa pagar pelo registro da alienação fiduciária do imóvel nem pela baixa da alienação no final do financiamento, além do seu lote não ficar bloqueado durante o financiamento
+- As parcelas do financiamento apresentadas já contemplam os eventuais juros, mas serão acrescidas correção monetária, calculada com base no IPCA ou IGPM, no ato do vencimento
+  </div>
+</div>
+</div>
+
+  <div id="btnRelatorio" style="max-width:720px;padding:0 20px;">
+    <button class="btn-report" onclick="abrirModalRelatorio()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Gerar Relatório
+    </button>
+  </div>
+
+  <!-- Modal morador/endereço -->
+  <div class="modal-overlay" id="modalRelatorio">
+    <div class="modal">
+      <h3>Dados do Relatório</h3>
+      <p>Preencha para identificar o documento antes de baixar.</p>
+      <div class="modal-field">
+        <label for="inputMorador">Morador</label>
+        <input type="text" id="inputMorador">
+      </div>
+      <div class="modal-field">
+        <label for="inputEndereco">Endereço</label>
+        <input type="text" id="inputEndereco">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="fecharModalRelatorio()">Cancelar</button>
+        <button class="btn btn-confirm" onclick="gerarRelatorio()">Baixar PDF</button>
+      </div>
+    </div>
+  </div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-brand">
+    <div class="logo-mark">UP</div>
+    Urbanizadora Paranoazinho S.A.
+  </div>
+  <div class="footer-links">
+    <a href="https://up.bsb.br/" target="_blank">Site oficial</a>
+    <a href="https://up.bsb.br/institucional/lgpd/" target="_blank">Privacidade</a>
+    <a href="https://up.bsb.br/contato/fale-com-a-up/" target="_blank">Contato</a>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="simulador.js"></script>
+</body>
+</html>
