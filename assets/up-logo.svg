@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 370 180" role="img" aria-labelledby="title desc">
+  <title id="title">Logotipo UP</title>
+  <desc id="desc">Símbolo com traços cinza, turquesa e laranja seguido das letras UP.</desc>
+  <g fill="none" stroke-linecap="round" stroke-width="16">
+    <path d="M34 106c16 8 23 23 23 41" stroke="#08A6AE"/>
+    <path d="M76 66c16 8 23 23 23 41" stroke="#56626A"/>
+    <path d="M118 96c-16 8-23 23-23 41" stroke="#F58A2B"/>
+    <path d="M55 37c16 8 39 8 55 0" stroke="#56626A"/>
+    <path d="M115 58c-16 8-23 23-23 41" stroke="#F58A2B"/>
+  </g>
+  <g fill="#4B5660">
+    <path d="M150 34h10c17 0 31 14 31 31v79c0 17-14 31-31 31h-10z"/>
+    <path d="M258 34h62c30 0 50 19 50 50 0 31-20 50-50 50h-30v40c0 4-3 7-7 7h-25c-4 0-7-3-7-7V41c0-4 3-7 7-7zm32 33v35h27c12 0 19-7 19-18s-7-17-19-17z"/>
+  </g>
+</svg>
