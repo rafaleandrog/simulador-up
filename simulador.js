@@ -1,7 +1,7 @@
 // ========== CONFIGURAÇÕES ==========
 const CONFIG = {
   API_URL: './api.php',
-  JUROS_MENSAL: 0.9489 / 100,
+  JUROS_MENSAL: 0.948879293458305 / 100,
 
   // Lote grande (hard-coded)
   LIMIAR_LOTE_GRANDE: 600,       // m² a partir do qual entra o desconto
@@ -40,6 +40,7 @@ const DOM = {
   carencia:         document.getElementById('carencia'),
   desconto:         document.getElementById('desconto'),
   jic:              document.getElementById('jic'),
+  dataContratacao:  document.getElementById('dataContratacao'),
   loteGrandeInfo:   document.getElementById('loteGrandeInfo'),
   valorLote:        document.getElementById('valorLote'),
   novoSaldo:        document.getElementById('novoSaldo'),
@@ -61,6 +62,7 @@ const state = {
   sinal:   0,
   carencia: 0,   // meses de carência (editável em tela)
   jic:     0,    // 1 = carência total (capitaliza juros) | 0 = paga só juros
+  dataContratacao: '',
   desconto: 0,   // % de desconto sobre o saldo (editável em tela)
 
   // Resultado do cálculo
@@ -144,6 +146,12 @@ function preencherDados(dados, bloquear) {
     if (bloquear) DOM.jic.disabled = true;
   }
 
+  if (dados.dataContratacao != null) {
+    state.dataContratacao = dados.dataContratacao;
+    DOM.dataContratacao.value = dados.dataContratacao;
+    if (bloquear) DOM.dataContratacao.readOnly = true;
+  }
+
   // Desconto sobre saldo
   if (dados.desconto != null) {
     state.desconto = dados.desconto;
@@ -224,6 +232,13 @@ function configurarEventListeners() {
 
   DOM.jic.addEventListener('change', () => {
     state.jic = DOM.jic.checked ? 1 : 0;
+  });
+
+  DOM.dataContratacao.addEventListener('input', () => {
+    state.dataContratacao = DOM.dataContratacao.value.trim();
+  });
+  DOM.dataContratacao.addEventListener('blur', () => {
+    state.dataContratacao = DOM.dataContratacao.value.trim();
   });
 
   DOM.sinal.addEventListener('input', () => {
@@ -345,7 +360,9 @@ function calcularFinanciamento() {
   if (state.prazo <= 0 || novoSaldo <= 0) return;
 
   const taxa       = CONFIG.JUROS_MENSAL;
-  const carencia   = Math.min(state.carencia, state.prazo - 1); // carência < prazo
+  const carencia = state.jic === 1
+    ? state.carencia
+    : Math.min(state.carencia, state.prazo - 1);
   let saldoCalculo = novoSaldo;
 
   // ---- Período de carência ----
@@ -372,7 +389,9 @@ function calcularFinanciamento() {
   }
 
   // ---- Período de amortização ----
-  const mesesPagamento = state.prazo - carencia;
+  // JIC=1 (carência total): prazo total = prazo + carência, amortização = prazo completo
+  // JIC=0 (só juros): amortização = prazo - carência (como antes)
+  const mesesPagamento = (state.jic === 1 && carencia > 0) ? state.prazo : state.prazo - carencia;
 
   // PRICE: parcela constante
   const parcelaPrice = saldoCalculo * taxa /
@@ -400,10 +419,22 @@ function calcularFinanciamento() {
 }
 
 // ========== RENDERIZAÇÃO DO FLUXO ==========
+function mesAnoParaParcela(index) {
+  const s = state.dataContratacao;
+  if (!s || !/^\d{2}\/\d{4}$/.test(s)) return '';
+  const [mmStr, aaaaStr] = s.split('/');
+  const base = (parseInt(aaaaStr, 10) - 1) * 12 + parseInt(mmStr, 10);
+  const total = base + index;
+  const mes = ((total - 1) % 12) + 1;
+  const ano = Math.floor((total - 1) / 12) + 1;
+  return String(mes).padStart(2, '0') + '/' + ano;
+}
+
 function renderizarFluxo(completo) {
   const totalMeses = state.parcelasPRICE.length;
   if (totalMeses === 0) return;
 
+  const showDate = /^\d{2}\/\d{4}$/.test(state.dataContratacao);
   let rows = '';
 
   if (completo) {
@@ -412,12 +443,12 @@ function renderizarFluxo(completo) {
       const cls = isCarencia ? ' class="carencia-row"' : '';
       rows += `<tr${cls}>
         <td>${m}${isCarencia ? ' <em>(carência)</em>' : ''}</td>
+        ${showDate ? `<td>${mesAnoParaParcela(m)}</td>` : ''}
         <td>${fmtNumber(state.parcelasPRICE[m - 1])}</td>
         <td>${fmtNumber(state.parcelasSAC[m - 1])}</td>
       </tr>`;
     }
   } else {
-    // Resumido: primeira parcela efetiva + última parcela
     let primeiroMes = 1;
     if (state.jic === 1 && state.carencia > 0) {
       primeiroMes = state.carencia + 1;
@@ -426,12 +457,14 @@ function renderizarFluxo(completo) {
     const cls = isCarenciaPrimeiro ? ' class="carencia-row"' : '';
     rows += `<tr${cls}>
       <td>${primeiroMes}${isCarenciaPrimeiro ? ' <em>(carência)</em>' : ''}</td>
+      ${showDate ? `<td>${mesAnoParaParcela(primeiroMes)}</td>` : ''}
       <td>${fmtNumber(state.parcelasPRICE[primeiroMes - 1])}</td>
       <td>${fmtNumber(state.parcelasSAC[primeiroMes - 1])}</td>
     </tr>`;
     if (totalMeses > primeiroMes) {
       rows += `<tr>
         <td>${totalMeses}</td>
+        ${showDate ? `<td>${mesAnoParaParcela(totalMeses)}</td>` : ''}
         <td>${fmtNumber(state.parcelasPRICE[totalMeses - 1])}</td>
         <td>${fmtNumber(state.parcelasSAC[totalMeses - 1])}</td>
       </tr>`;
@@ -443,6 +476,7 @@ function renderizarFluxo(completo) {
 
   rows += `<tr class="total-row">
     <td>TOTAL</td>
+    ${showDate ? '<td></td>' : ''}
     <td>${fmtNumber(totalPRICE)}</td>
     <td>${fmtNumber(totalSAC)}</td>
   </tr>`;
@@ -452,6 +486,7 @@ function renderizarFluxo(completo) {
       <thead>
         <tr>
           <th>Mês</th>
+          ${showDate ? '<th>Mês/Ano</th>' : ''}
           <th>Parcela PRICE</th>
           <th>Parcela SAC</th>
         </tr>
@@ -607,11 +642,20 @@ function gerarRelatorio() {
       ' (' + (state.jic === 1 ? 'carência total' : 'pagamento de juros') + ')'
     : 'Sem carência';
 
-  const mesesAmort = state.prazo - Math.min(state.carencia, state.prazo - 1);
+  const carenciaCalc = state.jic === 1
+    ? state.carencia
+    : Math.min(state.carencia, state.prazo - 1);
+  const mesesAmort = (state.jic === 1 && carenciaCalc > 0) ? state.prazo : state.prazo - carenciaCalc;
+  const prazoTotal = (state.jic === 1 && carenciaCalc > 0) ? state.prazo + carenciaCalc : state.prazo;
 
-  celula('Prazo Total', state.prazo + ' meses', 0, y);
+  celula('Prazo Total', prazoTotal + ' meses', 0, y);
   celula('Carência', carenciaLabel, 1, y);
   celula('Amortização', mesesAmort + ' meses', 2, y);
+
+  if (state.dataContratacao) {
+    y += 10;
+    celula('Data de Contratação', state.dataContratacao, 0, y);
+  }
   y += 16;
 
   // ---- TABELA PARCELAS ----
@@ -621,21 +665,30 @@ function gerarRelatorio() {
     y += 4;
     linha(y); y += 3;
 
-    // Cabeçalho tabela
-    const colW = [22, (inner - 22) / 2, (inner - 22) / 2];
-    const cols  = [margin, margin + colW[0], margin + colW[0] + colW[1]];
+    const showDatePDF = /^\d{2}\/\d{4}$/.test(state.dataContratacao);
+    const colW = showDatePDF
+      ? [15, 22, (inner - 37) / 2, (inner - 37) / 2]
+      : [22, (inner - 22) / 2, (inner - 22) / 2];
+    const cols = showDatePDF
+      ? [margin, margin + 15, margin + 37, margin + 37 + colW[2]]
+      : [margin, margin + colW[0], margin + colW[0] + colW[1]];
 
     function tabelaHeader(yPos) {
       retangulo(margin, yPos, inner, 7, COR_TOPO);
       setFont(8, 'bold', [255, 255, 255]);
-      doc.text('Mês',           cols[0] + 1, yPos + 5);
-      doc.text('PRICE (R$)',    cols[1] + colW[1] / 2, yPos + 5, { align: 'center' });
-      doc.text('SAC (R$)',      cols[2] + colW[2] / 2, yPos + 5, { align: 'center' });
+      doc.text('Mês', cols[0] + 1, yPos + 5);
+      if (showDatePDF) {
+        doc.text('Mês/Ano', cols[1] + colW[1] / 2, yPos + 5, { align: 'center' });
+        doc.text('PRICE (R$)', cols[2] + colW[2] / 2, yPos + 5, { align: 'center' });
+        doc.text('SAC (R$)',   cols[3] + colW[3] / 2, yPos + 5, { align: 'center' });
+      } else {
+        doc.text('PRICE (R$)', cols[1] + colW[1] / 2, yPos + 5, { align: 'center' });
+        doc.text('SAC (R$)',   cols[2] + colW[2] / 2, yPos + 5, { align: 'center' });
+      }
       return yPos + 7;
     }
 
-    function tabelaLinha(yPos, mes, price, sac, tipo) {
-      // tipo: 'normal' | 'carencia' | 'total'
+    function tabelaLinha(yPos, mes, price, sac, tipo, mesAno) {
       const bg = tipo === 'total'    ? COR_TOTAL
                : tipo === 'carencia' ? COR_CARENCIA
                : (mes % 2 === 0 ? [248, 250, 252] : [255, 255, 255]);
@@ -645,9 +698,15 @@ function gerarRelatorio() {
       const estilo = tipo === 'total' ? 'bold' : 'normal';
 
       setFont(8.5, estilo, cor);
-      doc.text(String(mes),        cols[0] + 1, yPos + 5);
-      doc.text(fmtNumber(price),   cols[1] + colW[1] - 1, yPos + 5, { align: 'right' });
-      doc.text(fmtNumber(sac),     cols[2] + colW[2] - 1, yPos + 5, { align: 'right' });
+      doc.text(String(mes), cols[0] + 1, yPos + 5);
+      if (showDatePDF) {
+        doc.text(mesAno || '', cols[1] + colW[1] / 2, yPos + 5, { align: 'center' });
+        doc.text(fmtNumber(price), cols[2] + colW[2] - 1, yPos + 5, { align: 'right' });
+        doc.text(fmtNumber(sac),   cols[3] + colW[3] - 1, yPos + 5, { align: 'right' });
+      } else {
+        doc.text(fmtNumber(price), cols[1] + colW[1] - 1, yPos + 5, { align: 'right' });
+        doc.text(fmtNumber(sac),   cols[2] + colW[2] - 1, yPos + 5, { align: 'right' });
+      }
       return yPos + 7;
     }
 
@@ -667,7 +726,8 @@ function gerarRelatorio() {
       y = tabelaLinha(y, m,
         state.parcelasPRICE[m - 1],
         state.parcelasSAC[m - 1],
-        tipo);
+        tipo,
+        showDatePDF ? mesAnoParaParcela(m) : '');
     }
 
     // Nova página se linha de total não couber
@@ -675,7 +735,7 @@ function gerarRelatorio() {
 
     const totalPRICE = state.parcelasPRICE.reduce((s, p) => s + p, 0);
     const totalSAC   = state.parcelasSAC.reduce((s, p) => s + p, 0);
-    y = tabelaLinha(y, 'TOTAL', totalPRICE, totalSAC, 'total');
+    y = tabelaLinha(y, 'TOTAL', totalPRICE, totalSAC, 'total', '');
     y += 6;
   }
 
@@ -688,17 +748,18 @@ function gerarRelatorio() {
   linha(y); y += 4;
 
   const obs = [
-    'Os valores apresentados não representam garantias ou propostas por parte da UP.',
-    'Os pagamentos serão determinados conforme contrato e/ou escritura firmados.',
-    'O financiamento não inclui ITBI e custos cartoriais, devidos no ato da escritura.',
-    'O imóvel será alienado fiduciariamente em favor do credor até a quitação.',
-    'As parcelas serão acrescidas de correção monetária (IPCA ou IGPM) no vencimento.'
+    'Os valores apresentados acima não representam garantias ou propostas por parte da UP, não sendo oponíveis, em nenhuma hipótese.',
+    'Os pagamentos devidos à UP serão determinados na forma regulada em seu contrato e/ou escritura, ainda que haja divergências em relação ao cálculo simulado nesta página.',
+    'Os financiamentos pelo(a) UP não incorporam ITBI e custos cartoriais, que devem estar quitadas pelo morador no ato da escritura.',
+    'Imóvel será alienado fiduciariamente em favor do credor até a quitação, como garantia.',
+    'Não deixe de considerar a opção de pagamento à vista, em que você não precisa pagar pelo registro da alienação fiduciária do imóvel nem pela baixa da alienação no final do financiamento, além do seu lote não ficar bloqueado durante o financiamento.',
+    'As parcelas do financiamento apresentadas já contemplam os juros de 12% a.a. + correção monetária, calculada com base no IPCA ou IGPM, no ato do vencimento.'
   ];
 
   obs.forEach(o => {
     setFont(7.5, 'normal', COR_CINZA);
     doc.text('• ' + o, margin + 2, y, { maxWidth: inner - 4 });
-    y += 5;
+    y += 6;
   });
 
   // ---- RODAPÉ ----
