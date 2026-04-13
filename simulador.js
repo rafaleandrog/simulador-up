@@ -338,6 +338,13 @@ function calcularPercentualSinal() {
   DOM.percentualSinal.textContent = `(${fmtNumber(perc)}%)`;
 }
 
+function calcularSaldoFinanciadoExibicao(saldoBase) {
+  if (state.jic === 1 && state.carencia > 0) {
+    return saldoBase * Math.pow(1 + CONFIG.JUROS_MENSAL, state.carencia);
+  }
+  return saldoBase;
+}
+
 // ========== CÁLCULO DO FINANCIAMENTO ==========
 /**
  * Fluxo com carência:
@@ -642,6 +649,7 @@ function gerarRelatorio() {
   const valorLote    = calcularValorLote();
   const saldoInicial = Math.max(0, valorLote - state.sinal);
   const novoSaldo    = saldoInicial * (1 - state.desconto / 100);
+  const saldoFinanciadoExibicao = calcularSaldoFinanciadoExibicao(novoSaldo);
   const valorDesc    = saldoInicial - novoSaldo;
   const percSinal    = valorLote > 0 ? (state.sinal / valorLote * 100) : 0;
 
