@@ -65,7 +65,8 @@ const DOM = {
   fluxo:            document.getElementById('fluxoParcelas'),
   tabelaFluxo:      document.getElementById('tabelaFluxo'),
   btnFluxoCompleto: document.getElementById('btnFluxoCompleto'),
-  btnFluxoResumido: document.getElementById('btnFluxoResumido')
+  btnFluxoResumido: document.getElementById('btnFluxoResumido'),
+  prazoHint:        document.getElementById('prazoHint')
 };
 
 // ========== ESTADO ==========
@@ -196,10 +197,37 @@ function bindInput(el, stateKey, transform) {
   });
 }
 
-function atualizarDesconto() {
-  const perc = DESCONTO_POR_FORMA[state.formaPagamento] ?? 0;
+// Regras de prazo por forma de pagamento
+const PRAZO_REGRAS = {
+  vista: { fixo: 1,    min: 1,  max: 1,   hint: '' },
+  '6x':  { fixo: null, min: 1,  max: 6,   hint: 'máx. 6' },
+  '12x': { fixo: null, min: 1,  max: 12,  hint: 'máx. 12' },
+  mais:  { fixo: null, min: 13, max: 120, hint: '13 – 120' },
+  '':    { fixo: null, min: 1,  max: 120, hint: '' }
+};
+
+function aplicarFormaPagamento() {
+  const forma = state.formaPagamento;
+  const perc  = DESCONTO_POR_FORMA[forma] ?? 0;
   state.desconto = perc;
   DOM.desconto.textContent = fmtNumber(perc) + '%';
+
+  const regra = PRAZO_REGRAS[forma] || PRAZO_REGRAS[''];
+  DOM.prazoHint.textContent = regra.hint;
+
+  if (regra.fixo !== null) {
+    // À Vista: prazo fixo em 1, campo bloqueado
+    state.prazo = regra.fixo;
+    DOM.prazo.value = String(regra.fixo);
+    DOM.prazo.readOnly = true;
+  } else {
+    DOM.prazo.readOnly = false;
+    // Limpa prazo se estiver fora do intervalo permitido
+    if (state.prazo !== 0 && (state.prazo < regra.min || state.prazo > regra.max)) {
+      state.prazo = 0;
+      DOM.prazo.value = '';
+    }
+  }
 }
 
 function configurarEventListeners() {
@@ -211,7 +239,7 @@ function configurarEventListeners() {
 
   DOM.formaPagamento.addEventListener('change', () => {
     state.formaPagamento = DOM.formaPagamento.value;
-    atualizarDesconto();
+    aplicarFormaPagamento();
   });
 
   DOM.area.addEventListener('input', () => {
@@ -248,8 +276,12 @@ function configurarEventListeners() {
   });
   DOM.prazo.addEventListener('blur', () => {
     const val = parseBR(DOM.prazo.value);
-    state.prazo = val ? Math.trunc(val) : 0;
-    DOM.prazo.value = state.prazo ? String(state.prazo) : '';
+    let n = val ? Math.trunc(val) : 0;
+    const regra = PRAZO_REGRAS[state.formaPagamento] || PRAZO_REGRAS[''];
+    if (n > 0) n = Math.min(Math.max(n, regra.min), regra.max);
+    state.prazo = n;
+    DOM.prazo.value = n ? String(n) : '';
+    if (n > 0) DOM.prazo.classList.remove('input-error');
   });
 
   DOM.carencia.addEventListener('input', () => {
@@ -363,11 +395,32 @@ function calcularSaldoFinanciadoExibicao(saldoBase) {
 function calcularFinanciamento() {
   // ---- Validação de campos obrigatórios ----
   let valido = true;
-  [['area', DOM.area], ['preco', DOM.preco], ['prazo', DOM.prazo]].forEach(([k, el]) => {
+
+  // Forma de pagamento
+  if (!state.formaPagamento) {
+    DOM.formaPagamento.classList.add('input-error');
+    valido = false;
+  } else {
+    DOM.formaPagamento.classList.remove('input-error');
+  }
+
+  // Campos numéricos
+  [['area', DOM.area], ['preco', DOM.preco]].forEach(([k, el]) => {
     if (!state[k]) { el.classList.add('input-error'); valido = false; }
     else el.classList.remove('input-error');
   });
+
+  // Prazo — valida também o intervalo da forma escolhida
+  const regraAtual = PRAZO_REGRAS[state.formaPagamento] || PRAZO_REGRAS[''];
+  if (!state.prazo || state.prazo < regraAtual.min || state.prazo > regraAtual.max) {
+    DOM.prazo.classList.add('input-error');
+    valido = false;
+  } else {
+    DOM.prazo.classList.remove('input-error');
+  }
+
   if (!valido) return;
+
   if (!/^\d{2}\/\d{4}$/.test(state.dataContratacao)) {
     DOM.dataContratacao.classList.add('input-error');
     valido = false;
