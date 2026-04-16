@@ -667,18 +667,8 @@
   <div class="card">
     <div class="card-title">Condições de Financiamento</div>
 
-    <div class="field-row">
-      <label for="prazo">Prazo (meses) <span class="required-mark">*</span></label>
-      <input type="text" id="prazo">
-    </div>
-
-    <div class="field-row">
-      <label for="dataContratacao">Data de contratação <span class="required-mark">*</span></label>
-      <input type="text" id="dataContratacao" placeholder="MM/AAAA" maxlength="7">
-    </div>
-
     <div class="field-row two-col">
-      <label for="formaPagamento">Forma de pagamento</label>
+      <label for="formaPagamento">Forma de pagamento <span class="required-mark">*</span></label>
       <select id="formaPagamento">
         <option value="">— selecione —</option>
         <option value="vista">À Vista</option>
@@ -686,6 +676,12 @@
         <option value="12x">Até 12x</option>
         <option value="mais">Mais Parcelas</option>
       </select>
+    </div>
+
+    <div class="field-row">
+      <label for="prazo">Prazo (meses) <span class="required-mark">*</span></label>
+      <input type="text" id="prazo">
+      <span id="prazoHint" class="field-hint"></span>
     </div>
 
     <div class="field-row">
