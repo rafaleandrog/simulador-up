@@ -430,10 +430,10 @@ function calcularValorLote() {
 }
 
 function atualizarValorLote() {
-  const val    = calcularValorLote();
+  const bruto  = calcularValorLoteBruto();
   const limiar = limiarAtual();
   const pct    = Math.round(descontoLGAtual() * 100);
-  DOM.valorLote.textContent = fmtBRL(val);
+  DOM.valorLote.textContent = fmtBRL(bruto);
 
   if (state.area > limiar) {
     DOM.loteGrandeInfo.textContent =
@@ -445,11 +445,12 @@ function atualizarValorLote() {
 }
 
 function calcularPercentualSinal() {
-  const valorLote = calcularValorLote();
-  const perc = valorLote > 0 ? (state.sinal / valorLote) * 100 : 0;
+  const bruto         = calcularValorLoteBruto();
+  const valorEfetivo  = calcularValorLote(); // bruto com descontoPreco aplicado
+  const perc = bruto > 0 ? (state.sinal / bruto) * 100 : 0;
   DOM.percentualSinal.textContent = `(${fmtNumber(perc)}%)`;
-  // Atualiza saldo devedor em tempo real (sem capitalização — cálculo completo no botão)
-  const saldo = Math.max(0, valorLote - state.sinal);
+  // Saldo devedor em tempo real = valor efetivo (com desconto) menos sinal
+  const saldo = Math.max(0, valorEfetivo - state.sinal);
   DOM.novoSaldo.textContent = fmtBRL(saldo);
 }
 
@@ -763,12 +764,11 @@ function gerarRelatorio() {
   y += 4;
   linha(y); y += 5;
 
-  // valorLote já inclui descontoPreco via calcularValorLote()
-  const valorLote    = calcularValorLote();
-  const saldoInicial = Math.max(0, valorLote - state.sinal);
-  const percSinal    = valorLote > 0 ? (state.sinal / valorLote * 100) : 0;
+  const valorLoteBruto   = calcularValorLoteBruto();
+  const valorLoteEfetivo = calcularValorLote(); // com descontoPreco
+  const saldoInicial     = Math.max(0, valorLoteEfetivo - state.sinal);
+  const percSinal        = valorLoteBruto > 0 ? (state.sinal / valorLoteBruto * 100) : 0;
 
-  // Saldo capitalizado (JIC=1 sem juros não faz sentido, mas mantemos para consistência)
   const taxaPDF = state.semJuros ? 0 : CONFIG.JUROS_MENSAL;
   const carenciaCalcPDF = state.jic === 1 ? state.carencia : Math.min(state.carencia, state.prazo - 1);
   const saldoFinanciadoPDF = (!state.semJuros && state.jic === 1 && carenciaCalcPDF > 0)
@@ -788,7 +788,7 @@ function gerarRelatorio() {
 
   celula('Área', fmtNumber(state.area) + ' m²',   0, y);
   celula('Preço/m²', 'R$ ' + fmtNumber(state.preco), 1, y);
-  celula('Valor do Lote', 'R$ ' + fmtNumber(valorLote), 2, y, true);
+  celula('Valor do Lote', 'R$ ' + fmtNumber(valorLoteBruto), 2, y, true);
   y += 14;
 
   celula('Sinal', 'R$ ' + fmtNumber(state.sinal) + ' (' + fmtNumber(percSinal) + '%)', 0, y);
