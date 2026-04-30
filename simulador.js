@@ -7,17 +7,28 @@ const CONFIG = {
   LIMIAR_LOTE_GRANDE: 600,
   DESCONTO_LOTE_GRANDE: 0.30,
 
-  // Lote grande — Campanha X
+  // Lote grande — Campanha REG-2026
   LIMIAR_CAMPANHA: 500,
   DESCONTO_CAMPANHA: 0.40
 };
 
-const DESCONTO_POR_FORMA = {
-  vista: 15,
-  '6x':  10,
-  '12x':  5,
-  mais:   0,
-  '':     0
+// Formas de pagamento por tipo de simulação
+// descPreco: % de desconto sobre o valor/m² (aplicado sobre valorLote)
+// prazoFixo: prazo em meses (fixo, preenchido automaticamente)
+// entradaPct: % do valorLote que vira sinal automático (null = sinal livre)
+// semJuros: true = taxa=0, parcelas iguais
+const FORMAS = {
+  padrao: {
+    vista: { label: 'À Vista', descPreco: 10, prazoFixo: 1, entradaPct: null, semJuros: false }
+  },
+  campanha: {
+    vista:     { label: 'À Vista',           descPreco: 25,  prazoFixo: 1,  entradaPct: null, semJuros: true },
+    ent50_12x: { label: 'Entrada 50% + 12x', descPreco: 15,  prazoFixo: 12, entradaPct: 50,   semJuros: true },
+    ent25_12x: { label: 'Entrada 25% + 12x', descPreco: 7.5, prazoFixo: 12, entradaPct: 25,   semJuros: true },
+    '3x':      { label: '3 vezes',           descPreco: 15,  prazoFixo: 3,  entradaPct: null, semJuros: true },
+    '6x':      { label: '6 vezes',           descPreco: 10,  prazoFixo: 6,  entradaPct: null, semJuros: true },
+    '12x':     { label: '12 vezes',          descPreco: 5,   prazoFixo: 12, entradaPct: null, semJuros: true }
+  }
 };
 
 // ========== FORMATAÇÃO ==========
@@ -71,18 +82,19 @@ const DOM = {
 
 // ========== ESTADO ==========
 const state = {
-  tipoSimulacao: 'padrao',  // 'padrao' | 'campanha'
+  tipoSimulacao:  'padrao',  // 'padrao' | 'campanha'
   formaPagamento: '',
+  descontoPreco:  0,     // % desconto sobre valorLote (vem da forma de pagamento)
+  semJuros:       false, // true = taxa 0%, parcelas iguais
   area:    0,
   preco:   0,
   prazo:   0,
   sinal:   0,
-  carencia: 0,   // meses de carência (editável em tela)
-  jic:     0,    // 1 = carência total (capitaliza juros) | 0 = paga só juros
+  carencia: 0,
+  jic:     0,
   dataContratacao: '',
-  desconto: 0,   // % de desconto — determinado pela forma de pagamento
+  desconto: 0,  // mantido para compatibilidade de PDF; sempre 0 agora
 
-  // Resultado do cálculo
   parcelasPRICE: [],
   parcelasSAC:   [],
   mesesCarencia: []
@@ -119,6 +131,7 @@ async function carregarDados() {
   }
 
   configurarEventListeners();
+  popularFormasDePagamento(); // popula select com opções do tipo inicial (padrao)
   atualizarValorLote();
   calcularPercentualSinal();
 }
@@ -197,44 +210,85 @@ function bindInput(el, stateKey, transform) {
   });
 }
 
-// Regras de prazo por forma de pagamento
-const PRAZO_REGRAS = {
-  vista: { fixo: 1,    min: 1,  max: 1,   hint: '' },
-  '6x':  { fixo: null, min: 1,  max: 6,   hint: 'máx. 6' },
-  '12x': { fixo: null, min: 1,  max: 12,  hint: 'máx. 12' },
-  mais:  { fixo: null, min: 13, max: 120, hint: '13 – 120' },
-  '':    { fixo: null, min: 1,  max: 120, hint: '' }
-};
+// ========== FORMA DE PAGAMENTO ==========
+function popularFormasDePagamento() {
+  const formas = FORMAS[state.tipoSimulacao] || FORMAS.padrao;
+  DOM.formaPagamento.innerHTML = '<option value="">— selecione —</option>';
+  Object.entries(formas).forEach(([val, f]) => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = f.label;
+    DOM.formaPagamento.appendChild(opt);
+  });
+  state.formaPagamento = '';
+  DOM.formaPagamento.value = '';
+  resetForma();
+}
+
+function resetForma() {
+  state.descontoPreco = 0;
+  state.semJuros = false;
+  state.desconto = 0;
+  state.prazo = 0;
+  state.sinal = 0;
+  DOM.desconto.textContent = '0,00%';
+  DOM.prazoHint.textContent = '';
+  DOM.prazo.value = '';
+  DOM.prazo.readOnly = false;
+  DOM.sinal.value = '';
+  DOM.sinal.readOnly = false;
+  atualizarValorLote();
+  calcularPercentualSinal();
+}
+
+function atualizarSinalAutomatico() {
+  const formas = FORMAS[state.tipoSimulacao] || FORMAS.padrao;
+  const regra = formas[state.formaPagamento];
+  if (regra && regra.entradaPct !== null) {
+    const vl = calcularValorLote();
+    state.sinal = Math.round(vl * regra.entradaPct / 100 * 100) / 100;
+    DOM.sinal.value = fmtNumber(state.sinal);
+    calcularPercentualSinal();
+  }
+}
 
 function aplicarFormaPagamento() {
   const forma = state.formaPagamento;
-  const perc  = DESCONTO_POR_FORMA[forma] ?? 0;
-  state.desconto = perc;
-  DOM.desconto.textContent = fmtNumber(perc) + '%';
+  if (!forma) { resetForma(); return; }
 
-  const regra = PRAZO_REGRAS[forma] || PRAZO_REGRAS[''];
-  DOM.prazoHint.textContent = regra.hint;
+  const formas = FORMAS[state.tipoSimulacao] || FORMAS.padrao;
+  const regra = formas[forma];
+  if (!regra) { resetForma(); return; }
 
-  if (regra.fixo !== null) {
-    // À Vista: prazo fixo em 1, campo bloqueado
-    state.prazo = regra.fixo;
-    DOM.prazo.value = String(regra.fixo);
-    DOM.prazo.readOnly = true;
+  state.descontoPreco = regra.descPreco;
+  state.semJuros      = regra.semJuros;
+  state.desconto      = 0;
+
+  DOM.desconto.textContent = fmtNumber(regra.descPreco) + '%';
+  DOM.prazoHint.textContent = '';
+  state.prazo = regra.prazoFixo;
+  DOM.prazo.value = String(regra.prazoFixo);
+  DOM.prazo.readOnly = true;
+
+  atualizarValorLote();  // aplica descontoPreco → atualiza valorLote
+
+  if (regra.entradaPct !== null) {
+    const vl = calcularValorLote();
+    state.sinal = Math.round(vl * regra.entradaPct / 100 * 100) / 100;
+    DOM.sinal.value = fmtNumber(state.sinal);
+    DOM.sinal.readOnly = true;
   } else {
-    DOM.prazo.readOnly = false;
-    // Limpa prazo se estiver fora do intervalo permitido
-    if (state.prazo !== 0 && (state.prazo < regra.min || state.prazo > regra.max)) {
-      state.prazo = 0;
-      DOM.prazo.value = '';
-    }
+    state.sinal = 0;
+    DOM.sinal.value = '';
+    DOM.sinal.readOnly = false;
   }
+  calcularPercentualSinal();
 }
 
 function configurarEventListeners() {
   DOM.tipoSimulacao.addEventListener('change', () => {
     state.tipoSimulacao = DOM.tipoSimulacao.value;
-    atualizarValorLote();
-    calcularPercentualSinal();
+    popularFormasDePagamento();
   });
 
   DOM.formaPagamento.addEventListener('change', () => {
@@ -247,6 +301,7 @@ function configurarEventListeners() {
     if (val !== null) state.area = val;
     atualizarValorLote();
     calcularPercentualSinal();
+    atualizarSinalAutomatico();
   });
   DOM.area.addEventListener('blur', () => {
     const val = parseBR(DOM.area.value);
@@ -254,6 +309,7 @@ function configurarEventListeners() {
     DOM.area.value = val ? fmtNumber(val) : '';
     atualizarValorLote();
     calcularPercentualSinal();
+    atualizarSinalAutomatico();
   });
 
   DOM.preco.addEventListener('input', () => {
@@ -261,6 +317,7 @@ function configurarEventListeners() {
     if (val !== null) state.preco = val;
     atualizarValorLote();
     calcularPercentualSinal();
+    atualizarSinalAutomatico();
   });
   DOM.preco.addEventListener('blur', () => {
     const val = parseBR(DOM.preco.value);
@@ -268,6 +325,7 @@ function configurarEventListeners() {
     DOM.preco.value = val ? fmtNumber(val) : '';
     atualizarValorLote();
     calcularPercentualSinal();
+    atualizarSinalAutomatico();
   });
 
   DOM.prazo.addEventListener('input', () => {
@@ -276,12 +334,9 @@ function configurarEventListeners() {
   });
   DOM.prazo.addEventListener('blur', () => {
     const val = parseBR(DOM.prazo.value);
-    let n = val ? Math.trunc(val) : 0;
-    const regra = PRAZO_REGRAS[state.formaPagamento] || PRAZO_REGRAS[''];
-    if (n > 0) n = Math.min(Math.max(n, regra.min), regra.max);
-    state.prazo = n;
-    DOM.prazo.value = n ? String(n) : '';
-    if (n > 0) DOM.prazo.classList.remove('input-error');
+    state.prazo = val ? Math.trunc(val) : 0;
+    DOM.prazo.value = state.prazo ? String(state.prazo) : '';
+    if (state.prazo > 0) DOM.prazo.classList.remove('input-error');
   });
 
   DOM.carencia.addEventListener('input', () => {
@@ -332,14 +387,14 @@ function onInputChange() {
 }
 
 // ========== CÁLCULO DO VALOR DO LOTE ==========
-function limiarAtual()  { return state.tipoSimulacao === 'campanha' ? CONFIG.LIMIAR_CAMPANHA  : CONFIG.LIMIAR_LOTE_GRANDE; }
+function limiarAtual()     { return state.tipoSimulacao === 'campanha' ? CONFIG.LIMIAR_CAMPANHA   : CONFIG.LIMIAR_LOTE_GRANDE; }
 function descontoLGAtual() { return state.tipoSimulacao === 'campanha' ? CONFIG.DESCONTO_CAMPANHA : CONFIG.DESCONTO_LOTE_GRANDE; }
 
-function calcularValorLote() {
+// Valor bruto (sem desconto de forma de pagamento)
+function calcularValorLoteBruto() {
   const { area, preco } = state;
   const limiar = limiarAtual();
   const descLG = descontoLGAtual();
-
   let val;
   if (area > limiar) {
     val = limiar * preco + (area - limiar) * preco * (1 - descLG);
@@ -347,6 +402,11 @@ function calcularValorLote() {
     val = area * preco;
   }
   return Math.max(0, val);
+}
+
+// Valor com desconto de forma de pagamento aplicado
+function calcularValorLote() {
+  return calcularValorLoteBruto() * (1 - state.descontoPreco / 100);
 }
 
 function atualizarValorLote() {
@@ -396,25 +456,19 @@ function calcularFinanciamento() {
   // ---- Validação de campos obrigatórios ----
   let valido = true;
 
-  // Forma de pagamento
   if (!state.formaPagamento) {
-    DOM.formaPagamento.classList.add('input-error');
-    valido = false;
+    DOM.formaPagamento.classList.add('input-error'); valido = false;
   } else {
     DOM.formaPagamento.classList.remove('input-error');
   }
 
-  // Campos numéricos
   [['area', DOM.area], ['preco', DOM.preco]].forEach(([k, el]) => {
     if (!state[k]) { el.classList.add('input-error'); valido = false; }
     else el.classList.remove('input-error');
   });
 
-  // Prazo — valida também o intervalo da forma escolhida
-  const regraAtual = PRAZO_REGRAS[state.formaPagamento] || PRAZO_REGRAS[''];
-  if (!state.prazo || state.prazo < regraAtual.min || state.prazo > regraAtual.max) {
-    DOM.prazo.classList.add('input-error');
-    valido = false;
+  if (!state.prazo) {
+    DOM.prazo.classList.add('input-error'); valido = false;
   } else {
     DOM.prazo.classList.remove('input-error');
   }
@@ -422,30 +476,16 @@ function calcularFinanciamento() {
   if (!valido) return;
 
   if (!/^\d{2}\/\d{4}$/.test(state.dataContratacao)) {
-    DOM.dataContratacao.classList.add('input-error');
-    valido = false;
+    DOM.dataContratacao.classList.add('input-error'); valido = false;
   } else {
     DOM.dataContratacao.classList.remove('input-error');
   }
   if (!valido) return;
 
-  const valorLote   = calcularValorLote();
-  const saldoInicial = Math.max(0, valorLote - state.sinal);
-
-  // Aplica desconto percentual sobre o saldo (após entrada)
-  const novoSaldo = saldoInicial * (1 - state.desconto / 100);
-  const valorDescontoAplicado  = saldoInicial - novoSaldo;
-  const percentualDescontoReal = saldoInicial > 0
-    ? (valorDescontoAplicado / saldoInicial) * 100 : 0;
-
-  if (Math.abs(valorDescontoAplicado) > 0.01) {
-    DOM.descontoInfo.style.display = 'block';
-    DOM.descontoInfo.innerHTML =
-      `✔ Desconto aplicado: <strong>${fmtBRL(valorDescontoAplicado)}</strong> ` +
-      `(${fmtNumber(percentualDescontoReal)}% do saldo)`;
-  } else {
-    DOM.descontoInfo.style.display = 'none';
-  }
+  // valorLote já inclui descontoPreco da forma de pagamento
+  const valorLote    = calcularValorLote();
+  const novoSaldo    = Math.max(0, valorLote - state.sinal);
+  DOM.descontoInfo.style.display = 'none';
 
   state.parcelasPRICE = [];
   state.parcelasSAC   = [];
@@ -456,7 +496,7 @@ function calcularFinanciamento() {
     return;
   }
 
-  const taxa       = CONFIG.JUROS_MENSAL;
+  const taxa     = state.semJuros ? 0 : CONFIG.JUROS_MENSAL;
   const carencia = state.jic === 1
     ? state.carencia
     : Math.min(state.carencia, state.prazo - 1);
@@ -494,9 +534,10 @@ function calcularFinanciamento() {
   // JIC=0 (só juros): amortização = prazo - carência (como antes)
   const mesesPagamento = (state.jic === 1 && carencia > 0) ? state.prazo : state.prazo - carencia;
 
-  // PRICE: parcela constante
-  const parcelaPrice = saldoCalculo * taxa /
-    (1 - Math.pow(1 + taxa, -mesesPagamento));
+  // PRICE: parcela constante (sem juros = divisão simples)
+  const parcelaPrice = taxa === 0
+    ? saldoCalculo / mesesPagamento
+    : saldoCalculo * taxa / (1 - Math.pow(1 + taxa, -mesesPagamento));
 
   for (let m = 1; m <= mesesPagamento; m++) {
     state.parcelasPRICE.push(parcelaPrice);
@@ -699,18 +740,17 @@ function gerarRelatorio() {
   y += 4;
   linha(y); y += 5;
 
+  // valorLote já inclui descontoPreco via calcularValorLote()
   const valorLote    = calcularValorLote();
   const saldoInicial = Math.max(0, valorLote - state.sinal);
-  const novoSaldo    = saldoInicial * (1 - state.desconto / 100);
-  const saldoFinanciadoExibicao = calcularSaldoFinanciadoExibicao(novoSaldo);
-  const valorDesc    = saldoInicial - novoSaldo;
   const percSinal    = valorLote > 0 ? (state.sinal / valorLote * 100) : 0;
 
-  // Saldo capitalizado (JIC=1): novoSaldo × (1+taxa)^carência
+  // Saldo capitalizado (JIC=1 sem juros não faz sentido, mas mantemos para consistência)
+  const taxaPDF = state.semJuros ? 0 : CONFIG.JUROS_MENSAL;
   const carenciaCalcPDF = state.jic === 1 ? state.carencia : Math.min(state.carencia, state.prazo - 1);
-  const saldoFinanciadoPDF = (state.jic === 1 && carenciaCalcPDF > 0)
-    ? Math.round(novoSaldo * Math.pow(1 + CONFIG.JUROS_MENSAL, carenciaCalcPDF) * 100) / 100
-    : novoSaldo;
+  const saldoFinanciadoPDF = (!state.semJuros && state.jic === 1 && carenciaCalcPDF > 0)
+    ? Math.round(saldoInicial * Math.pow(1 + taxaPDF, carenciaCalcPDF) * 100) / 100
+    : saldoInicial;
 
   // Grid de 3 colunas
   function colX(col) { return margin + col * (inner / 3); }
@@ -729,13 +769,7 @@ function gerarRelatorio() {
   y += 14;
 
   celula('Sinal', 'R$ ' + fmtNumber(state.sinal) + ' (' + fmtNumber(percSinal) + '%)', 0, y);
-
-  if (Math.abs(valorDesc) > 0.01) {
-    celula('Desconto', fmtNumber(state.desconto) + '% = R$ ' + fmtNumber(valorDesc), 1, y);
-  } else {
-    celula('Desconto', 'Nenhum', 1, y);
-  }
-
+  celula('Desconto s/ preço', fmtNumber(state.descontoPreco) + '%', 1, y);
   celula('Saldo Financiado', 'R$ ' + fmtNumber(saldoFinanciadoPDF), 2, y, true);
   y += 16;
 
@@ -756,8 +790,9 @@ function gerarRelatorio() {
   const mesesAmort = (state.jic === 1 && carenciaCalc > 0) ? state.prazo : state.prazo - carenciaCalc;
   const prazoTotal = (state.jic === 1 && carenciaCalc > 0) ? state.prazo + carenciaCalc : state.prazo;
 
-  const formaLabel = { vista: 'À Vista', '6x': 'Até 6x', '12x': 'Até 12x', mais: 'Mais Parcelas', '': '—' };
-  const tipoLabel  = state.tipoSimulacao === 'campanha' ? 'Campanha X' : 'Regularização Padrão';
+  const formasAtivas = FORMAS[state.tipoSimulacao] || FORMAS.padrao;
+  const formaLabelStr = (formasAtivas[state.formaPagamento] || {}).label || '—';
+  const tipoLabel  = state.tipoSimulacao === 'campanha' ? 'Campanha REG-2026' : 'Regularização Padrão';
 
   celula('Prazo Total', prazoTotal + ' meses', 0, y);
   celula('Carência', carenciaLabel, 1, y);
@@ -765,7 +800,7 @@ function gerarRelatorio() {
   y += 14;
 
   celula('Tipo de Simulação', tipoLabel, 0, y);
-  celula('Forma de Pagamento', formaLabel[state.formaPagamento] || '—', 1, y);
+  celula('Forma de Pagamento', formaLabelStr, 1, y);
   if (state.dataContratacao) celula('Data de Contratação', state.dataContratacao, 2, y);
   y += 16;
 
