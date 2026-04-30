@@ -19,15 +19,16 @@ const CONFIG = {
 // semJuros: true = taxa=0, parcelas iguais
 const FORMAS = {
   padrao: {
-    vista: { label: 'À Vista', descPreco: 10, prazoFixo: 1, entradaPct: null, semJuros: false }
+    mais: { label: 'Mais parcelas', descPreco: 0, prazoFixo: null, entradaPct: null, semJuros: false }
   },
   campanha: {
-    vista:     { label: 'À Vista',           descPreco: 25,  prazoFixo: 1,  entradaPct: null, semJuros: true },
-    ent50_12x: { label: 'Entrada 50% + 12x', descPreco: 15,  prazoFixo: 12, entradaPct: 50,   semJuros: true },
-    ent25_12x: { label: 'Entrada 25% + 12x', descPreco: 7.5, prazoFixo: 12, entradaPct: 25,   semJuros: true },
-    '3x':      { label: '3 vezes',           descPreco: 15,  prazoFixo: 3,  entradaPct: null, semJuros: true },
-    '6x':      { label: '6 vezes',           descPreco: 10,  prazoFixo: 6,  entradaPct: null, semJuros: true },
-    '12x':     { label: '12 vezes',          descPreco: 5,   prazoFixo: 12, entradaPct: null, semJuros: true }
+    vista:     { label: 'À Vista',           descPreco: 25,  prazoFixo: 1,    entradaPct: null, semJuros: true  },
+    ent50_12x: { label: 'Entrada 50% + 12x', descPreco: 15,  prazoFixo: 12,   entradaPct: 50,   semJuros: true  },
+    ent25_12x: { label: 'Entrada 25% + 12x', descPreco: 7.5, prazoFixo: 12,   entradaPct: 25,   semJuros: true  },
+    '3x':      { label: '3 vezes',           descPreco: 15,  prazoFixo: 3,    entradaPct: null, semJuros: true  },
+    '6x':      { label: '6 vezes',           descPreco: 10,  prazoFixo: 6,    entradaPct: null, semJuros: true  },
+    '12x':     { label: '12 vezes',          descPreco: 5,   prazoFixo: 12,   entradaPct: null, semJuros: true  },
+    mais:      { label: 'Mais parcelas',     descPreco: 0,   prazoFixo: null, entradaPct: null, semJuros: false }
   }
 };
 
@@ -220,9 +221,17 @@ function popularFormasDePagamento() {
     opt.textContent = f.label;
     DOM.formaPagamento.appendChild(opt);
   });
-  state.formaPagamento = '';
-  DOM.formaPagamento.value = '';
-  resetForma();
+
+  if (state.tipoSimulacao === 'padrao') {
+    // Regularização Padrão: auto-seleciona "Mais parcelas"
+    state.formaPagamento = 'mais';
+    DOM.formaPagamento.value = 'mais';
+    aplicarFormaPagamento();
+  } else {
+    state.formaPagamento = '';
+    DOM.formaPagamento.value = '';
+    resetForma();
+  }
 }
 
 function resetForma() {
@@ -265,10 +274,19 @@ function aplicarFormaPagamento() {
   state.desconto      = 0;
 
   DOM.desconto.textContent = fmtNumber(regra.descPreco) + '%';
-  DOM.prazoHint.textContent = '';
-  state.prazo = regra.prazoFixo;
-  DOM.prazo.value = String(regra.prazoFixo);
-  DOM.prazo.readOnly = true;
+
+  if (regra.prazoFixo === null) {
+    // "Mais parcelas" — prazo livre, máx. 120
+    state.prazo = 0;
+    DOM.prazo.value = '';
+    DOM.prazo.readOnly = false;
+    DOM.prazoHint.textContent = 'máx. 120';
+  } else {
+    state.prazo = regra.prazoFixo;
+    DOM.prazo.value = String(regra.prazoFixo);
+    DOM.prazo.readOnly = true;
+    DOM.prazoHint.textContent = '';
+  }
 
   atualizarValorLote();  // aplica descontoPreco → atualiza valorLote
 
@@ -334,7 +352,9 @@ function configurarEventListeners() {
   });
   DOM.prazo.addEventListener('blur', () => {
     const val = parseBR(DOM.prazo.value);
-    state.prazo = val ? Math.trunc(val) : 0;
+    let prazoVal = val ? Math.trunc(val) : 0;
+    if (prazoVal > 120) prazoVal = 120;
+    state.prazo = prazoVal;
     DOM.prazo.value = state.prazo ? String(state.prazo) : '';
     if (state.prazo > 0) DOM.prazo.classList.remove('input-error');
   });
@@ -428,6 +448,9 @@ function calcularPercentualSinal() {
   const valorLote = calcularValorLote();
   const perc = valorLote > 0 ? (state.sinal / valorLote) * 100 : 0;
   DOM.percentualSinal.textContent = `(${fmtNumber(perc)}%)`;
+  // Atualiza saldo devedor em tempo real (sem capitalização — cálculo completo no botão)
+  const saldo = Math.max(0, valorLote - state.sinal);
+  DOM.novoSaldo.textContent = fmtBRL(saldo);
 }
 
 function calcularSaldoFinanciadoExibicao(saldoBase) {
