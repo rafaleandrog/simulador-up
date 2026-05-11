@@ -19,7 +19,13 @@ const CONFIG = {
 // semJuros: true = taxa=0, parcelas iguais
 const FORMAS = {
   padrao: {
-    mais: { label: 'Mais parcelas', descPreco: 0, prazoFixo: null, entradaPct: null, semJuros: false }
+    vista:     { label: 'À Vista',           descPreco: 25,  prazoFixo: 1,    entradaPct: null, semJuros: true  },
+    ent50_12x: { label: 'Entrada 50% + 12x', descPreco: 15,  prazoFixo: 12,   entradaPct: 50,   semJuros: true  },
+    ent25_12x: { label: 'Entrada 25% + 12x', descPreco: 7.5, prazoFixo: 12,   entradaPct: 25,   semJuros: true  },
+    '3x':      { label: '3 vezes',           descPreco: 15,  prazoFixo: 3,    entradaPct: null, semJuros: true  },
+    '6x':      { label: '6 vezes',           descPreco: 10,  prazoFixo: 6,    entradaPct: null, semJuros: true  },
+    '12x':     { label: '12 vezes',          descPreco: 5,   prazoFixo: 12,   entradaPct: null, semJuros: true  },
+    mais:      { label: 'Mais parcelas',     descPreco: 0,   prazoFixo: null, entradaPct: null, semJuros: false }
   },
   campanha: {
     vista:     { label: 'À Vista',           descPreco: 25,  prazoFixo: 1,    entradaPct: null, semJuros: true  },
@@ -221,17 +227,9 @@ function popularFormasDePagamento() {
     opt.textContent = f.label;
     DOM.formaPagamento.appendChild(opt);
   });
-
-  if (state.tipoSimulacao === 'padrao') {
-    // Regularização Padrão: auto-seleciona "Mais parcelas"
-    state.formaPagamento = 'mais';
-    DOM.formaPagamento.value = 'mais';
-    aplicarFormaPagamento();
-  } else {
-    state.formaPagamento = '';
-    DOM.formaPagamento.value = '';
-    resetForma();
-  }
+  state.formaPagamento = '';
+  DOM.formaPagamento.value = '';
+  resetForma();
 }
 
 function resetForma() {
